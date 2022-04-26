@@ -57,6 +57,9 @@ def depends_deal(input_path, projectName, root,  absolutePath):
         filename = convertedDict['filename']
         if filename == "":
             filename = None
+        if (language == 'cpp') & (convertedDict['type']!= 'file'):
+            name = name.split(".")
+            name = "::".join(name)
         entityList.append(Entity(id, name, convertedDict['type'],
                                         filename, line))
 
@@ -90,4 +93,5 @@ if __name__ == "__main__":
     project_name = "boto3"
     output_path =  "C:/Users/ding7/Desktop/consistence anlysis/input/python/"
     field_separator = "D:/gitrepo/python/boto3/"
-    depends_deal(input_path, project_name, output_path, field_separator)
+    language = ""
+    depends_deal(input_path, project_name, output_path, field_separator, language)

@@ -87,9 +87,6 @@ def cpp_deal(entity_path, dependency_path):
     return entity_list, dependency_list
 
 
-
-
-
 if __name__ == "__main__":
     language = ""
     projectname = ""
