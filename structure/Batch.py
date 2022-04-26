@@ -117,6 +117,21 @@ class Batch:
                 compare = Tree.Compare()
                 equal_set = compare.compare(l_forest[key].mid, r_forest[key].mid)
                 Equal.extend(equal_set)
+
+        type_mapping = ['Class', 'Struct', 'Union']
+        if l_dataset_name == 'depends':
+            for kind in type_mapping:
+                if kind in r_forest.keys():
+                    compare = Tree.Compare()
+                    equal_set = compare.compare(l_forest['TYPE'].mid, r_forest[kind].mid)
+                    Equal.extend(equal_set)
+        if r_dataset_name == 'depends':
+            for kind in type_mapping:
+                if kind in l_forest.keys():
+                    compare = Tree.Compare()
+                    equal_set = compare.compare(r_forest[kind].mid, r_forest['TYPE'].mid)
+                    Equal.extend(equal_set)
+
         print(f"compare data costs: {datetime.now() - compare_start}.")
         return Equal
 
