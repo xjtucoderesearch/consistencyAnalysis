@@ -24,7 +24,7 @@ def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, 
     entity['endColumn'] = endColumn
     return entity
 
-def depends_deal(input_path, projectName, root,  absolutePath):
+def depends_deal(input_path, projectName, root,  absolutePath, language):
     with open(input_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
 
