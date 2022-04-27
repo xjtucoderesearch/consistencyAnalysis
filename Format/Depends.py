@@ -24,6 +24,15 @@ def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, 
     entity['endColumn'] = endColumn
     return entity
 
+def output(info_list: list, json_path: str, type:str, projectname: str):
+    file = dict()
+    file["schemaVersion"] = 1.0
+    file[type] = info_list
+    file['projectName'] = projectname
+    dependency_str = json.dumps(file, indent=4)
+    with open(json_path, 'w') as json_file:
+        json_file.write(dependency_str)
+
 
 def depends_deal(input_path, projectName, root,  absolutePath, language):
     with open(input_path, 'r', encoding='utf-8') as file:
@@ -61,31 +70,35 @@ def depends_deal(input_path, projectName, root,  absolutePath, language):
         if (language == 'cpp') & (convertedDict['type'] != 'File'):
             name = name.split(".")
             name = "::".join(name)
-        entityList.append(Entity(id, name, convertedDict['type'],
-                                        filename, line))
+        if language == 'python':
+            kind = convertedDict['type']
+            if kind == "File":
+                continue
+            else:
+                if not (filename is None) | name.__contains__("/"):
+                    if not len(filename) == 0:
+                        if not filename.__contains__("__init__"):
+                            filename = filename.replace(".py", "")
+                            if not filename.__contains__("/"):
+                                name = filename + "." + name
+                            else:
+                                filename = filename.split("/")
+                                add_scope = ".".join(filename)
+                                filename = filename[0:len(filename) - 1]
+                                filename = ".".join(filename)
+                                name = name.replace(filename, add_scope)
+
+        entityList.append(Entity(id, name, convertedDict['type'], filename, line))
 
     dependencyList = list()
     for dependency in data['cells']:
         for dep in dependency['values']:
             dependencyList.append(Dependency(dep, dependency['src'], dependency['dest']))
 
-    entity_file = dict()
-    entity_file["schemaVersion"] = 1.0
-    entity_file['entity'] = entityList
-    entity_file['projectName'] = projectName
     entity_json_path = root + "depends_" + projectName + "_entity.json"
-    entity_str = json.dumps(entity_file, indent=4)
-    with open(entity_json_path, 'w') as json_file:
-        json_file.write(entity_str)
-
-    dependency_file = dict()
-    dependency_file["schemaVersion"] = 1.0
-    dependency_file['dependency'] = dependencyList
-    dependency_file['projectName'] = projectName
     dependency_json_path = root + "depends_" + projectName + "_dependency.json"
-    dependency_str = json.dumps(dependency_file, indent=4)
-    with open(dependency_json_path, 'w') as json_file:
-        json_file.write(dependency_str)
+    output(entityList, entity_json_path, "entity", projectName)
+    output(dependencyList, dependency_json_path, "dependency", projectName)
 
 
 if __name__ == "__main__":
