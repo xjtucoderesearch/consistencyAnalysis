@@ -24,6 +24,7 @@ def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, 
     entity['endColumn'] = endColumn
     return entity
 
+
 def depends_deal(input_path, projectName, root,  absolutePath, language):
     with open(input_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
@@ -57,7 +58,7 @@ def depends_deal(input_path, projectName, root,  absolutePath, language):
         filename = convertedDict['filename']
         if filename == "":
             filename = None
-        if (language == 'cpp') & (convertedDict['type']!= 'file'):
+        if (language == 'cpp') & (convertedDict['type'] != 'File'):
             name = name.split(".")
             name = "::".join(name)
         entityList.append(Entity(id, name, convertedDict['type'],
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     # need: input_path , project_name , output_path
     input_path = "C:/Users/ding7/Desktop/consistence anlysis/source_input/depends_python/boto3.json"
     project_name = "boto3"
-    output_path =  "C:/Users/ding7/Desktop/consistence anlysis/input/python/"
+    output_path = "C:/Users/ding7/Desktop/consistence anlysis/input/python/"
     field_separator = "D:/gitrepo/python/boto3/"
     language = ""
     depends_deal(input_path, project_name, output_path, field_separator, language)

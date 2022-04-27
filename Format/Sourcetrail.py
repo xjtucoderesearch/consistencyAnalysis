@@ -138,6 +138,16 @@ def sourcetrail_get_edge(cur):
     return edge_list
 
 
+def output(info_list: list, json_path: str, type:str, projectname: str):
+    file = dict()
+    file["schemaVersion"] = 1.0
+    file[type] = info_list
+    file['projectName'] = projectname
+    dependency_str = json.dumps(file, indent=4)
+    with open(json_path, 'w') as json_file:
+        json_file.write(dependency_str)
+
+
 if __name__ == "__main__":
 
     # need: projectname, db_path, field_separator, language, outputFile
@@ -157,18 +167,5 @@ if __name__ == "__main__":
     entity_json_path = root + "sourcetrail_" + projectname +"_entity.json"
     dependency_json_path = root + "sourcetrail_" +projectname +"_dependency.json"
 
-    entity_file = dict()
-    entity_file["schemaVersion"] = 1.0
-    entity_file['entity'] = entityList
-    entity_file['projectName'] = projectname
-    entity_str = json.dumps(entity_file, indent=4)
-    with open(entity_json_path, 'w') as json_file:
-        json_file.write(entity_str)
-
-    dependency_file = dict()
-    dependency_file["schemaVersion"] = 1.0
-    dependency_file['dependency'] = dependencyList
-    dependency_file['projectName'] = projectname
-    dependency_str = json.dumps(dependency_file, indent=4)
-    with open(dependency_json_path, 'w') as json_file:
-        json_file.write(dependency_str)
+    output(entityList, entity_json_path, "entity", projectname)
+    output(dependencyList, dependency_json_path, "dependency", projectname)
