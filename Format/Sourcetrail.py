@@ -151,8 +151,8 @@ def output(info_list: list, json_path: str, type:str, projectname: str):
 if __name__ == "__main__":
 
     # need: projectname, db_path, field_separator, language, outputFile
-    projectname = "bitcoin"
-    language = "cpp"
+    projectname = "mypy"
+    language = "python"
     root = "C:/Users/ding7/Desktop/"
     
     field_separator = "D:/gitrepo/" + language + "/" + projectname +"/"

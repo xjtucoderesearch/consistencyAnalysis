@@ -32,15 +32,16 @@ def deal(path: str):
         entity_name = entity['entityName']
         if entity['entityType'] == "File":
             entity_name = entity_name.replace("\\", "/")
-        entity_list.append(Entity(entity['entityID'], entity_name, entity['entityType']))
-
+        entity_list.append(Entity(entity['entityID'], entity_name, entity['entityType'],
+                                  entity['entityFile'], entity['startLine'], entity['startColumn'],
+                                  entity['endLine'], entity['endColumn']))
     return entity_list
 
 
 if __name__ == "__main__":
-    project_name = "benchmark"
-    input_path = "D:/scitool/SciTools/scripts/benchmark_entity.json"
-    output_path = "D:/scitool/SciTools/scripts/"
+    project_name = "glances"
+    input_path = "C:/Users/ding7/Desktop/consistencyAnalysis/input_dir/" + project_name + "/understand_" + project_name + "_entity.json"
+    output_path = "C:/Users/ding7/Desktop/consistencyAnalysis/input_dir/" + project_name + "/"
 
     entity_list = deal(input_path)
     output(entity_list, output_path + "understand_" + project_name + "_entity.json",  "entity", project_name)

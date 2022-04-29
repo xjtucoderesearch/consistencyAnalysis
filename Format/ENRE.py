@@ -88,18 +88,18 @@ def cpp_deal(entity_path, dependency_path):
 
 
 if __name__ == "__main__":
-    language = ""
-    projectname = ""
-    input_path = ""
-    output_path = ""
+    language = "cpp"
+    projectname = "electron"
+    input_path = "C:/Users/ding7/Desktop/ENRE-CPP/electron"
+    output_path = "C:/Users/ding7/Desktop/"
 
     if language == "cpp":
-        entity_list, dependency_list = cpp_deal(input_path + "_entity.json", input_path + "_dependency.json")
+        entity_list, dependency_list = cpp_deal(input_path + "_node.json", input_path + "_edge.json")
     elif language == "java":
         entity_list, dependency_list = java_deal(input_path)
     elif language == "python":
         entity_list, dependency_list = python_deal(input_path)
 
     if (language == 'cpp') | (language == 'java') | (language == 'python'):
-        output(entity_list, output_path + projectname + "_entity.json",  "entity", projectname)
-        output(dependency_list, output_path + projectname + "_dependency.json", "dependency", projectname)
+        output(entity_list, output_path + "enre_" +projectname + "_entity.json",  "entity", projectname)
+        output(dependency_list, output_path + "enre_" +projectname + "_dependency.json", "dependency", projectname)

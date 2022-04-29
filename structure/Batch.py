@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pickle
 from pathlib import Path
@@ -17,7 +18,7 @@ class Batch:
         self.entity_map = mapping['entity_map']
         self.dependency_map = mapping['dependency_map']
         self.specifier_list = {
-            'cpp': ['public', 'private', 'protected', 'static', 'generic', 'abstract', 'unknown', 'const', 'virtual', 'explicit', 'c '],
+            'cpp': ['public', 'private', 'protected', 'static', 'generic', 'abstract', 'unknown', 'const', 'virtual', 'explicit', 'c ', 'default'],
             'java': ['java', 'public', 'private', 'protected', 'static', 'generic', 'abstract', 'unknown'],
             'python': ['python', 'possible', 'public', 'private', 'protected', 'static', 'generic', 'abstract', 'unknown']
         }
@@ -30,32 +31,6 @@ class Batch:
         isPickleExist = os.path.exists(pickle_path)
         if not isPickleExist:
             os.makedirs(pickle_path)
-
-    def batch(self):
-        tool_name = ['enre', 'understand', 'depends', 'sourcetrail']
-        entity_data = dict()
-        dependency_data = dict()
-        for name in tool_name:
-            entity_path = f"./input_dir/{self.project_name}/{name}_{self.project_name}_entity.json"
-            entity_data[name] = self.load_entity_file(entity_path)
-            self.build_trees(entity_data[name], name)
-            dependency_path = f"./input_dir/{self.project_name}/{name}_{self.project_name}_dependency.json"
-            dependency_data[name] = self.load_dependency_file(dependency_path)
-
-        compare_pair = [['enre', 'understand'], ['enre', 'depends'], ['enre', 'sourcetrail'],
-                        ['understand', 'depends'], ['understand', 'sourcetrail'], ['depends', 'sourcetrail']]
-
-        Equal_set = [0, 0, 0, 0, 0, 0]
-        for pair in compare_pair:
-            print(f"Start compare {pair[0]} and {pair[1]}...")
-            index = compare_pair.index(pair)
-            Equal_set[index] = self.entity_compare(pair[0], pair[1])
-            l_mapping_dict, r_mapping_dict = self.output(Equal_set[index], entity_data[pair[0]], entity_data[pair[1]], pair[0], pair[1], 'entity')
-            print(f"{pair[0]} and {pair[1]} entity comparison finished")
-            print(f"Start compare {pair[0]} and {pair[1]} dependency...")
-            dependency_equal_set = self.dependency_compare(dependency_data[pair[0]], dependency_data[pair[1]], l_mapping_dict, r_mapping_dict, pair[0], pair[1])
-            self.output(dependency_equal_set, dependency_data[pair[0]], dependency_data[pair[1]], pair[0], pair[1], 'dependency')
-            print(f"{pair[0]} and {pair[1]} dependency comparison finished")
 
     def resolveType(self, type: str) -> str:
         for specifier in self.specifier_list[self.language]:
@@ -86,16 +61,17 @@ class Batch:
             return
         # os.path.isfile(target)
         forest = dict()
-        print(f"start load {dataset_name} data:")
+        logging.info(f"start load {dataset_name} data:")
         start = datetime.now()
         for entity in data:
             en = entity['entityName']
             entity_type = self.getType(dataset_name, entity['entityType'])
-            if entity_type not in forest.keys():
-                forest[entity_type] = nameTree()
-            forest[entity_type].insert(en.split(self.separation), data.index(entity))
+            if not en == None:
+                if entity_type not in forest.keys():
+                    forest[entity_type] = nameTree()
+                forest[entity_type].insert(en.split(self.separation), data.index(entity))
 
-        print(f"load {dataset_name} costs: {datetime.now() - start}.")
+        logging.info(f"load {dataset_name} costs: {datetime.now() - start}.")
         with open(pickle_path, 'wb') as file:
             pickle.dump(forest, file)
 
@@ -108,73 +84,86 @@ class Batch:
         with open(f"./pickle_dir/{self.project_name}/{r_dataset_name}_{self.project_name}.pickle", 'rb') as file:
             r_forest = pickle.load(file)
 
-        print(f"Start compare data:")
+        logging.info(f"Start compare data:")
         compare_start = datetime.now()
         Equal = list()
         for key in l_forest.keys():
             if key in r_forest.keys():
-                print(f"Start compare {key} tries:")
+                logging.info(f"Start compare {key} tries:")
                 compare = Tree.Compare()
                 equal_set = compare.compare(l_forest[key].mid, r_forest[key].mid)
                 Equal.extend(equal_set)
 
         type_mapping = ['Class', 'Struct', 'Union']
-        if l_dataset_name == 'depends':
-            for kind in type_mapping:
-                if kind in r_forest.keys():
-                    compare = Tree.Compare()
-                    equal_set = compare.compare(l_forest['TYPE'].mid, r_forest[kind].mid)
-                    Equal.extend(equal_set)
-        if r_dataset_name == 'depends':
-            for kind in type_mapping:
-                if kind in l_forest.keys():
-                    compare = Tree.Compare()
-                    equal_set = compare.compare(r_forest[kind].mid, r_forest['TYPE'].mid)
-                    Equal.extend(equal_set)
 
-        print(f"compare data costs: {datetime.now() - compare_start}.")
+        if l_dataset_name == 'depends':
+            if "TYPE" in l_forest.keys():
+                for kind in type_mapping:
+                    if kind in r_forest.keys():
+                        compare = Tree.Compare()
+                        equal_set = compare.compare(l_forest['TYPE'].mid, r_forest[kind].mid)
+                        Equal.extend(equal_set)
+        if r_dataset_name == 'depends':
+            if "TYPE" in r_forest.keys():
+                for kind in type_mapping:
+                    if kind in l_forest.keys():
+                        compare = Tree.Compare()
+                        equal_set = compare.compare(l_forest[kind].mid, r_forest['TYPE'].mid)
+                        Equal.extend(equal_set)
+
+        logging.info(f"compare data costs: {datetime.now() - compare_start}.")
         return Equal
 
     def dependency_compare(self, l_dependency_data, r_dependency_data, l_mapping_dict, r_mapping_dict, l_dataset_name, r_dataset_name):
-        MG = nx.MultiGraph()
+        edge_dict = dict()
         Equal_set = list()
         start = datetime.now()
-        print(f"start load {l_dataset_name} data:")
-        for dep in l_dependency_data:
+        logging.info(f"start load {l_dataset_name} dependency data:")
+        for index in range(0, len(l_dependency_data)):
+            dep = l_dependency_data[index]
             if (dep['dependencySrcID'] in l_mapping_dict.keys()) & (dep['dependencyDestID'] in l_mapping_dict.keys()):
+                # print(dep)
                 dependency_kind = dep['dependencyType'].lower()
                 if l_dataset_name == 'understand':
                     dependency_kind = self.resolveType(dependency_kind)
-                dependency_kind = self.dependency_map[l_dataset_name][dependency_kind]
-                index = l_dependency_data.index(dep)
-                MG.add_edge(l_mapping_dict[dep['dependencySrcID']], l_mapping_dict[dep['dependencyDestID']],
-                            kind=dependency_kind, dataset=l_dataset_name, index=index)
-        print(f"load {l_dataset_name} data costs: {datetime.now() - start}.")
+                if dependency_kind in self.dependency_map[l_dataset_name].keys():
+                    dependency_kind = self.dependency_map[l_dataset_name][dependency_kind]
+                    srcID = l_mapping_dict[dep['dependencySrcID']]
+                    destID = l_mapping_dict[dep['dependencyDestID']]
+                    if srcID not in edge_dict.keys():
+                        edge_dict[srcID] = dict()
+                    if destID not in edge_dict[srcID].keys():
+                        edge_dict[srcID][destID] = list()
+                    edge_dict[srcID][destID].append({'kind': dependency_kind, 'dataset': l_dataset_name, 'index': index})
+
+        logging.info(f"load {l_dataset_name} dependency data costs: {datetime.now() - start}.")
         start = datetime.now()
-        print(f"start load {r_dataset_name} data:")
-        count = 0
-        for dep in r_dependency_data:
+        logging.info(f"start load {r_dataset_name} dependency data:")
+        for index in range(0, len(r_dependency_data)):
+            dep = r_dependency_data[index]
             if (dep['dependencySrcID'] in r_mapping_dict.keys()) & (dep['dependencyDestID'] in r_mapping_dict.keys()):
-                count = count + 1
+                # print(dep)
                 dependency_kind = dep['dependencyType'].lower()
                 if r_dataset_name == 'understand':
                     dependency_kind = self.resolveType(dependency_kind)
-                dependency_kind = self.dependency_map[r_dataset_name][dependency_kind]
-                index = r_dependency_data.index(dep)
-                MG.add_edge(r_mapping_dict[dep['dependencySrcID']], r_mapping_dict[dep['dependencyDestID']],
-                            kind=dependency_kind, dataset=r_dataset_name, index=index)
-                if count%100 == 0:
-                    print(count)
-        print(f"load {r_dataset_name} data costs: {datetime.now() - start}.")
+                if dependency_kind in self.dependency_map[r_dataset_name].keys():
+                    dependency_kind = self.dependency_map[r_dataset_name][dependency_kind]
+                    srcID = r_mapping_dict[dep['dependencySrcID']]
+                    destID = r_mapping_dict[dep['dependencyDestID']]
+                    if srcID not in edge_dict.keys():
+                        edge_dict[srcID] = dict()
+                    if destID not in edge_dict[srcID].keys():
+                        edge_dict[srcID][destID] = list()
+                    edge_dict[srcID][destID].append({'kind': dependency_kind, 'dataset': r_dataset_name, 'index': index})
+        logging.info(f"load {r_dataset_name} dependency data costs: {datetime.now() - start}.")
         start = datetime.now()
-        print(f"deal with graph:")
-        for node in MG.nodes:
-            for neighbor in nx.all_neighbors(MG, node):
+        logging.info(f"deal with graph:")
+        for node in edge_dict.keys():
+            for neighbor in edge_dict[node].keys():
                 equal_dep_index = dict()
                 equal_dep_dataset = dict()
-                if len(MG[node][neighbor]) > 1:
-                    for edge_id in MG[node][neighbor]:
-                        edge = MG[node][neighbor][edge_id]
+                if len(edge_dict[node][neighbor]) > 1:
+                    for edge in edge_dict[node][neighbor]:
                         if edge['kind'] not in equal_dep_index.keys():
                             equal_dep_index[edge['kind']] = list()
                             equal_dep_dataset[edge['kind']] = list()
@@ -197,12 +186,11 @@ class Batch:
                                     if equal_dep_dataset[key][i] == r_dataset_name:
                                         r_set.add(equal_dep_index[key][i])
                                 Equal_set.append(tuple((l_set, r_set)))
-        print(f"compare data costs: {datetime.now() - start}.")
+
+        logging.info(f"compare data costs: {datetime.now() - start}.")
         return Equal_set
 
     def output(self, Equal_set: list, l_data, r_data, l_dataset_name, r_dataset_name, type):
-        l_mapping_dict = dict()
-        r_mapping_dict = dict()
         l_ne_set = set(range(len(l_data)))
         r_ne_set = set(range(len(r_data)))
         equal_result = list()
@@ -218,19 +206,17 @@ class Batch:
                 entity['dataset'] = l_dataset_name
                 equal_unit["lgroup"].append(entity)
                 if not id in l_ne_set:
-                    print(f"no this number in l_data {id}")
+                    logging.info(f"no this number in l_data {id}")
                 else:
                     l_ne_set.remove(id)
-                    l_mapping_dict[id] = l_id
             for id in equal[1]:
                 entity = r_data[id]
                 entity['dataset'] = r_dataset_name
                 equal_unit["rgroup"].append(entity)
                 if not id in r_ne_set:
-                    print(f"no this number in r_data {id}")
+                    logging.info(f"no this number in r_data {id}")
                 else:
                     r_ne_set.remove(id)
-                    r_mapping_dict[id] = l_id
             equal_result.append(equal_unit)
 
         ne_set = list()
@@ -250,4 +236,60 @@ class Batch:
         result_str = json.dumps(result_file, indent=4)
         with open(f"./output_dir/{self.project_name}/{type}_{l_dataset_name}_{r_dataset_name}.json", 'w') as json_file:
             json_file.write(result_str)
-        return l_mapping_dict, r_mapping_dict
+
+    def get_equal_entity(self, entities):
+
+        l_set = dict()
+        r_set = dict()
+        for entity_pair in entities:
+            index = -1
+            for l_entity in entity_pair['lgroup']:
+                if index == -1:
+                    index = l_entity['entityID']
+                l_set[l_entity['entityID']] = index
+            for r_entity in entity_pair['rgroup']:
+                r_set[r_entity['entityID']] = index
+
+        return l_set, r_set
+
+    def entity_batch(self):
+        tool_name = ['enre', 'understand', 'depends', 'sourcetrail']
+        entity_data = dict()
+        dependency_data = dict()
+        for name in tool_name:
+            entity_path = f"./input_dir/{self.project_name}/{name}_{self.project_name}_entity.json"
+            entity_data[name] = self.load_entity_file(entity_path)
+            self.build_trees(entity_data[name], name)
+            dependency_path = f"./input_dir/{self.project_name}/{name}_{self.project_name}_dependency.json"
+            dependency_data[name] = self.load_dependency_file(dependency_path)
+
+        compare_pair = [['enre', 'understand'], ['enre', 'depends'], ['enre', 'sourcetrail'],
+                        ['understand', 'depends'], ['understand', 'sourcetrail'], ['depends', 'sourcetrail']]
+
+        Equal_set = [0, 0, 0, 0, 0, 0]
+        for pair in compare_pair:
+            logging.info(f"Start compare {pair[0]} and {pair[1]}...")
+            index = compare_pair.index(pair)
+            Equal_set[index] = self.entity_compare(pair[0], pair[1])
+            self.output(Equal_set[index], entity_data[pair[0]], entity_data[pair[1]], pair[0], pair[1], 'entity')
+            logging.info(f"{pair[0]} and {pair[1]} entity comparison finished")
+
+
+    def dependency_batch(self):
+        tool_name = ['enre', 'understand', 'depends', 'sourcetrail']
+        dependency_data = dict()
+        for name in tool_name:
+            dependency_path = f"./input_dir/{self.project_name}/{name}_{self.project_name}_dependency.json"
+            dependency_data[name] = self.load_dependency_file(dependency_path)
+
+        compare_pair = [['enre', 'understand'], ['enre', 'depends'], ['enre', 'sourcetrail'],
+                        ['understand', 'depends'], ['understand', 'sourcetrail'], ['depends', 'sourcetrail']]
+        for pair in compare_pair:
+            entity_result_path = f"./output_dir/{self.project_name}/entity_{pair[0]}_{pair[1]}.json"
+            with open(entity_result_path, 'r') as file:
+                data = json.load(file)
+            l_set, r_set = self.get_equal_entity(data['eq_set'])
+            logging.info(f"Start compare {pair[0]} and {pair[1]} dependency...")
+            dependency_equal_set = self.dependency_compare(dependency_data[pair[0]], dependency_data[pair[1]], l_set, r_set, pair[0], pair[1])
+            self.output(dependency_equal_set, dependency_data[pair[0]], dependency_data[pair[1]], pair[0], pair[1], 'dependency')
+            logging.info(f"{pair[0]} and {pair[1]} dependency comparison finished")

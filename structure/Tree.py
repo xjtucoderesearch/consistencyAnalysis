@@ -1,11 +1,13 @@
 
 class Node:
-    def __init__(self, char, word, children=None, fail=None):
+    def __init__(self, char, word, terminal=False, children=None ):
         self.char = char
         self.word = word
         self.children = children or set()
-        self.fail = fail
+        self.terminal = terminal
         self.nodeset = set()
+    def setTerminal(self):
+        self.terminal = True
 
 
 class nameTree:
@@ -30,6 +32,7 @@ class nameTree:
             bn = child
         bn.word = item
         bn.nodeset.add(id)
+        bn.setTerminal()
 
     def tree(self, bn: Node):
         """返回二叉树的树形结构"""
@@ -77,7 +80,7 @@ class Compare:
             for child_left in bn_left.children:
                 for child_right in bn_right.children:
                     if child_left.char == child_right.char:
-                        if bool(child_left.word) & bool(child_right.word):
+                        if child_left.terminal & child_right.terminal:
                             self.Equal_set.append(tuple((child_left.nodeset, child_right.nodeset)))
                         else:
                             self.compare(child_left, child_right)
