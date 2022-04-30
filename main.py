@@ -25,7 +25,7 @@ if __name__ == '__main__':
         logging.info(f"analysis {project} costs: {datetime.now() - start}.")
 
     language = "java"
-    java_project = ['halo',  'fastjson', 'mockito', 'MPAndroidChart', 'RxJava']
+    java_project = ['halo', 'fastjson', 'mockito', 'MPAndroidChart', 'RxJava']
     for project in java_project:
         logging.info(f"start analysis {project}")
         start = datetime.now()

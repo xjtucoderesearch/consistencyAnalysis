@@ -61,7 +61,11 @@ def java_deal(path: str):
     for node in nodes:
         if node['external'] == True:
             break
-        node_list.append(Entity(node['id'], node['qualifiedName'], node['category']))
+        if node['category'] == 'File':
+            node_name = node['File']
+        else:
+            node_name = node['qualifiedName']
+        node_list.append(Entity(node['id'], node_name, node['category']))
     for edge in edges:
         values = edge['values']
         for value in values.keys():
@@ -88,9 +92,9 @@ def cpp_deal(entity_path, dependency_path):
 
 
 if __name__ == "__main__":
-    language = "cpp"
-    projectname = "electron"
-    input_path = "C:/Users/ding7/Desktop/ENRE-CPP/electron"
+    language = "python"
+    projectname = "keras"
+    input_path = "D:/ASE2022/UsabilityTest/tools/ENRE/keras-report-enre.json"
     output_path = "C:/Users/ding7/Desktop/"
 
     if language == "cpp":

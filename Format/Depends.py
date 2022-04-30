@@ -108,8 +108,8 @@ def depends_deal(input_path, projectName, root,  absolutePath, language):
 
 if __name__ == "__main__":
     # need: input_path , project_name , output_path
-    project_name = "glances"
-    input_path = "C:/Users/ding7/Desktop/consistence anlysis/source_input/depends_python/"+ project_name +".json"
+    project_name = "keras"
+    input_path = "E:/depends/keras.json"
 
     output_path = "C:/Users/ding7/Desktop/"
     field_separator = "D:/gitrepo/python/" + project_name + "/"

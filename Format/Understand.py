@@ -39,10 +39,11 @@ def deal(path: str):
 
 
 if __name__ == "__main__":
-    project_name = "glances"
+    project_name = "keras"
     input_path = "C:/Users/ding7/Desktop/consistencyAnalysis/input_dir/" + project_name + "/understand_" + project_name + "_entity.json"
+    input_path = "D:/scitool/SciTools/scripts/understand_keras_dependency.json"
     output_path = "C:/Users/ding7/Desktop/consistencyAnalysis/input_dir/" + project_name + "/"
 
     entity_list = deal(input_path)
-    output(entity_list, output_path + "understand_" + project_name + "_entity.json",  "entity", project_name)
+    output(entity_list, output_path + "understand_" + project_name + "_dependency.json",  "dependency", project_name)
 
