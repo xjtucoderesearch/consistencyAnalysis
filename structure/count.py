@@ -14,13 +14,21 @@ class count:
         }
         self.data_count = dict()
 
-    def batch(self):
+    def entity_batch(self):
         compare_pair = [['enre', 'understand'], ['enre', 'depends'], ['enre', 'sourcetrail'],
                         ['understand', 'depends'], ['understand', 'sourcetrail'], ['depends', 'sourcetrail']]
         for pair in compare_pair:
             path = "../output_dir/" + project_name + "/entity_" + pair[0] + "_" + pair[1] + ".json"
             self.data_count[pair[0] + "&" + pair[1]] = self.entity(path, pair[0], pair[1])
-        self.output()
+        self.output("entity")
+
+    def dependency_batch(self):
+        compare_pair = [['enre', 'understand'], ['enre', 'depends'], ['enre', 'sourcetrail'],
+                        ['understand', 'depends'], ['understand', 'sourcetrail'], ['depends', 'sourcetrail']]
+        for pair in compare_pair:
+            path = "../output_dir/" + project_name + "/dependency_" + pair[0] + "_" + pair[1] + ".json"
+            self.data_count[pair[0] + "&" + pair[1]] = self.dependency(path, pair[0], pair[1])
+        self.output("dependency")
 
     def resolve(self, type, dataset_name):
         type = type.lower()
@@ -94,9 +102,70 @@ class count:
             'Jaccard': Jaccard_index
         }
 
-    def output(self):
+    def dependency(self, path:str, l_dataset_name, r_dataset_name):
+        with open(path, 'r') as file:
+            data = json.load(file)
+        l_equal_count = dict()
+        r_equal_count = dict()
+        for pair in data['eq_set']:
+            type = self.resolve(pair['lgroup'][0]['dependencyType'], l_dataset_name)
+            if type not in l_equal_count.keys():
+                l_equal_count[type] = 0
+                r_equal_count[type] = 0
+            l_equal_count[type] = l_equal_count[type] + len(pair['lgroup'])
+            r_equal_count[type] = r_equal_count[type] + len(pair['rgroup'])
+        l_sum = sum([l_equal_count[key] for key in l_equal_count.keys()])
+        l_equal_count['sum'] = l_sum
+        r_sum = sum([r_equal_count[key] for key in r_equal_count.keys()])
+        r_equal_count['sum'] = r_sum
+        print(l_equal_count)
+        print(r_equal_count)
+
+        l_not_equal_count = dict()
+        r_not_equal_count = dict()
+        for entity in data['ne_set']:
+            if entity['dataset'] == l_dataset_name:
+                type = self.resolve(entity['dependencyType'], l_dataset_name)
+                if type not in l_not_equal_count.keys():
+                    l_not_equal_count[type] = 0
+                l_not_equal_count[type] = l_not_equal_count[type] + 1
+            if entity['dataset'] == r_dataset_name:
+                type = self.resolve(entity['dependencyType'], r_dataset_name)
+                if type not in r_not_equal_count.keys():
+                    r_not_equal_count[type] = 0
+                r_not_equal_count[type] = r_not_equal_count[type] + 1
+        l_sum = sum([l_not_equal_count[key] for key in l_not_equal_count.keys()])
+        l_not_equal_count['sum'] = l_sum
+        r_sum = sum([r_not_equal_count[key] for key in r_not_equal_count.keys()])
+        r_not_equal_count['sum'] = r_sum
+
+        print(l_not_equal_count)
+        print(r_not_equal_count)
+
+        Jaccard_index = dict()
+        for kind in l_equal_count.keys():
+            if kind not in l_not_equal_count.keys():
+                l = 0
+            else:
+                l = l_not_equal_count[kind]
+            if kind not in r_not_equal_count.keys():
+                r = 0
+            else:
+                r = r_not_equal_count[kind]
+            equal_count = (l_equal_count[kind] + r_equal_count[kind])/2
+            Jaccard_index[kind] = equal_count / (l + r + equal_count)
+        print(Jaccard_index)
+        return {
+            'l_equal': l_equal_count,
+            'r_equal': r_equal_count,
+            'l_ne': l_not_equal_count,
+            'r_ne': r_not_equal_count,
+            'Jaccard': Jaccard_index
+        }
+
+    def output(self, type: str):
         data_count = self.data_count
-        with open('../count_file/{}.csv'.format(project_name), 'w', encoding='utf-8', newline='') as f:
+        with open(f'../count_file/{project_name}_{type}.csv', 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f, dialect='excel')
             for key in data_count.keys():
                 l_dataset_name = key.split("&")[0]
@@ -134,6 +203,6 @@ if __name__ == "__main__":
         mapping_path = "../mappings/" + language + "_map.json"
         with open(mapping_path, 'r') as file:
             mapping = json.load(file)
-        entity_count = count(mapping, language, project_name)
-        entity_count.batch()
-
+        counts = count(mapping, language, project_name)
+        counts.entity_batch()
+        # counts.dependency_batch()
