@@ -22,7 +22,6 @@ class count:
             self.data_count[pair[0] + "&" + pair[1]] = self.entity(path, pair[0], pair[1])
         self.output()
 
-
     def resolve(self, type, dataset_name):
         type = type.lower()
 
@@ -34,19 +33,24 @@ class count:
             type = self.mapping['entity_map'][dataset_name][type]
         return type
 
-
     def entity(self, path:str, l_dataset_name, r_dataset_name):
         with open(path, 'r') as file:
             data = json.load(file)
-        equal_count = dict()
+        l_equal_count = dict()
+        r_equal_count = dict()
         for pair in data['eq_set']:
             type = self.resolve(pair['lgroup'][0]['entityType'], l_dataset_name)
-            if type not in equal_count.keys():
-                equal_count[type] = 0
-            l_temp_count = len(pair['lgroup'])
-            r_temp_count = len(pair['rgroup'])
-            equal_count[type] = equal_count[type] + max(l_temp_count, r_temp_count)
-        print(equal_count)
+            if type not in l_equal_count.keys():
+                l_equal_count[type] = 0
+                r_equal_count[type] = 0
+            l_equal_count[type] = l_equal_count[type] + len(pair['lgroup'])
+            r_equal_count[type] = r_equal_count[type] + len(pair['rgroup'])
+        l_sum = sum([l_equal_count[key] for key in l_equal_count.keys()])
+        l_equal_count['sum'] = l_sum
+        r_sum = sum([r_equal_count[key] for key in r_equal_count.keys()])
+        r_equal_count['sum'] = r_sum
+        print(l_equal_count)
+        print(r_equal_count)
 
         l_not_equal_count = dict()
         r_not_equal_count = dict()
@@ -61,11 +65,16 @@ class count:
                 if type not in r_not_equal_count.keys():
                     r_not_equal_count[type] = 0
                 r_not_equal_count[type] = r_not_equal_count[type] + 1
+        l_sum = sum([l_not_equal_count[key] for key in l_not_equal_count.keys()])
+        l_not_equal_count['sum'] = l_sum
+        r_sum = sum([r_not_equal_count[key] for key in r_not_equal_count.keys()])
+        r_not_equal_count['sum'] = r_sum
+
         print(l_not_equal_count)
         print(r_not_equal_count)
 
         Jaccard_index = dict()
-        for kind in equal_count.keys():
+        for kind in l_equal_count.keys():
             if kind not in l_not_equal_count.keys():
                 l = 0
             else:
@@ -74,17 +83,16 @@ class count:
                 r = 0
             else:
                 r = r_not_equal_count[kind]
-            Jaccard_index[kind] = equal_count[kind] / (l + r + equal_count[kind])
-            print(kind, equal_count[kind] / (l + r + equal_count[kind]))
-
+            equal_count = (l_equal_count[kind] + r_equal_count[kind])/2
+            Jaccard_index[kind] = equal_count / (l + r + equal_count)
+        print(Jaccard_index)
         return {
-            'equal':equal_count,
+            'l_equal': l_equal_count,
+            'r_equal': r_equal_count,
             'l_ne': l_not_equal_count,
             'r_ne': r_not_equal_count,
             'Jaccard': Jaccard_index
         }
-
-
 
     def output(self):
         data_count = self.data_count
@@ -93,14 +101,17 @@ class count:
             for key in data_count.keys():
                 l_dataset_name = key.split("&")[0]
                 r_dataset_name = key.split("&")[1]
-                equal_count = data_count[key]['equal']
+                l_equal_count = data_count[key]['l_equal']
+                r_equal_count = data_count[key]['r_equal']
                 l_not_equal_count = data_count[key]['l_ne']
                 r_not_equal_count = data_count[key]['r_ne']
                 Jaccard_index = data_count[key]['Jaccard']
 
                 writer.writerow([l_dataset_name + "&" + r_dataset_name])
-                writer.writerow(equal_count.keys())
-                writer.writerow([equal_count[key] for key in equal_count.keys()])
+                writer.writerow(l_equal_count.keys())
+                writer.writerow([l_equal_count[key] for key in l_equal_count.keys()])
+                writer.writerow(r_equal_count.keys())
+                writer.writerow([r_equal_count[key] for key in r_equal_count.keys()])
                 writer.writerow(l_not_equal_count.keys())
                 writer.writerow([l_not_equal_count[key] for key in l_not_equal_count.keys()])
                 writer.writerow(r_not_equal_count.keys())
@@ -112,10 +123,10 @@ class count:
 if __name__ == "__main__":
     project_list = ['halo', 'fastjson', 'mockito', 'MPAndroidChart', 'RxJava',
                     'bitcoin', 'calculator', 'leveldb', 'git', 'electron',
-                    'boto3', 'glances', 'mypy', 'numpy']
+                    'boto3', 'glances', 'mypy', 'numpy', 'keras']
     language_list = ['java', 'java', 'java', 'java', 'java',
                      'cpp', 'cpp', 'cpp', 'cpp', 'cpp',
-                     'python', 'python', 'python', 'python']
+                     'python', 'python', 'python', 'python', 'python']
 
     for i in range(0, len(project_list)):
         project_name = project_list[i]
