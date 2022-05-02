@@ -33,7 +33,7 @@ def output(info_list: list, json_path: str, type:str, projectname: str):
     with open(json_path, 'w') as json_file:
         json_file.write(dependency_str)
 
-def depends_deal(input_path, projectName, root,  absolutePath, language):
+def depends(input_path, projectName, root,  absolutePath, language):
     with open(input_path, 'r', encoding='utf-8') as file:
         data = json.load(file)
 
@@ -114,4 +114,4 @@ if __name__ == "__main__":
     output_path = "C:/Users/ding7/Desktop/"
     field_separator = "D:/gitrepo/python/" + project_name + "/"
     language = "python"
-    depends_deal(input_path, project_name, output_path, field_separator, language)
+    depends(input_path, project_name, output_path, field_separator, language)

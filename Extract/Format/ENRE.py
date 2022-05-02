@@ -90,12 +90,11 @@ def cpp_deal(entity_path, dependency_path):
         dependency_list.append(Dependency(dependency['type'], dependency['src'], dependency['dest']))
     return entity_list, dependency_list
 
-
-if __name__ == "__main__":
-    language = "python"
-    projectname = "keras"
-    input_path = "D:/ASE2022/UsabilityTest/tools/ENRE/keras-report-enre.json"
-    output_path = "C:/Users/ding7/Desktop/"
+def enre(language, projectname, input_path, output_path):
+    # language = "python"
+    # projectname = "keras"
+    # input_path = "D:/ASE2022/UsabilityTest/tools/ENRE/keras-report-enre.json"
+    # output_path = "C:/Users/ding7/Desktop/"
 
     if language == "cpp":
         entity_list, dependency_list = cpp_deal(input_path + "_node.json", input_path + "_edge.json")

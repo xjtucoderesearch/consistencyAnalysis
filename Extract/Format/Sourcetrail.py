@@ -148,10 +148,23 @@ def output(info_list: list, json_path: str, type:str, projectname: str):
         json_file.write(dependency_str)
 
 
-if __name__ == "__main__":
-
+def sourcetrail(projectname, language, db_path, root):
     # need: projectname, db_path, field_separator, language, outputFile
-    projectname = "mypy"
+    con = sqlite3.connect(db_path)
+    cur = con.cursor()
+
+    entityList = sourcetrail_get_node(cur, "", language)
+    dependencyList = sourcetrail_get_edge(cur)
+
+    entity_json_path = root + "sourcetrail_" + projectname + "_entity.json"
+    dependency_json_path = root + "sourcetrail_" + projectname + "_dependency.json"
+
+    output(entityList, entity_json_path, "entity", projectname)
+    output(dependencyList, dependency_json_path, "dependency", projectname)
+
+
+if __name__ == "__main__":
+    projectname = "keras"
     language = "python"
     root = "C:/Users/ding7/Desktop/"
     

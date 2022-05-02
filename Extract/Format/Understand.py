@@ -38,6 +38,10 @@ def deal(path: str):
     return entity_list
 
 
+def understand(input_path, output_path, project_name):
+    entity_list = deal(input_path)
+    output(entity_list, output_path + "understand_" + project_name + "_dependency.json", "dependency", project_name)
+
 if __name__ == "__main__":
     project_name = "keras"
     input_path = "C:/Users/ding7/Desktop/consistencyAnalysis/input_dir/" + project_name + "/understand_" + project_name + "_entity.json"
