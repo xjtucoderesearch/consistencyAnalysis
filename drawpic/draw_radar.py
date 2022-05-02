@@ -152,9 +152,16 @@ def get_data(fix: str):
                         r_equal_data = int(rows[len(rows) - 1])
                         temp_list = [0, 0, l_equal_data, r_equal_data, 0, 0, 0, 0]
                         data_list[language][14] = [(temp_list[i] + data_list[language][14][i]) for i in range(0, 8)]
-    Jaccard = list()
+    Jaccard = dict()
     for key in data_list.keys():
-        sum_count = data_list[key][0]
+        temp = data_list[key]
+        Jaccard[key] = list()
+        m_list = [9, 10, 11, 12, 13, 14]
+        n_list = [6, 1, 0, 4, 0, 2]
+        j_list = [7, 2, 1, 5, 7, 3]
+        for m, n, j in zip(m_list, n_list, j_list):
+            Jaccard[key].append(((temp[m][j] +temp[m][n])/2)/(temp[0][n] + temp[0][j] + temp[m][n]/2 + temp[m][j]/2))
+    print(Jaccard)
 
     data = [
         ['Sourcetrail', 'ENRE', 'Depends', 'Sourcetrail', 'Understand', 'Depends', 'ENRE', 'Understand'],
@@ -162,8 +169,8 @@ def get_data(fix: str):
         ('Java', data_list['java']),
         ('Python', data_list['python'])
     ]
-    print(data)
     return data
+
 
 def get_tool_number(project:list, fix):
     tool_list = ['enre', 'understand', 'sourcetrail', 'depends']

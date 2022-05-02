@@ -35,7 +35,7 @@ if __name__ == '__main__':
         logging.info(f"analysis {project} costs: {datetime.now() - start}.")
 
     language = "python"
-    java_project = ['boto3', 'glances',  'mypy', 'numpy']
+    java_project = ['keras','boto3', 'glances',  'mypy', 'numpy']
     for project in java_project:
         logging.info(f"start analysis {project}")
         start = datetime.now()
