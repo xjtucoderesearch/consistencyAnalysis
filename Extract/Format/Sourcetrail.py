@@ -1,7 +1,9 @@
 import json
 import sqlite3
-import re
+import argparse
 import math
+
+
 
 def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, startColumn = -1, endLine = -1, endColumn = -1):
     entity = dict()
@@ -76,44 +78,21 @@ def sourcetrail_get_node(cur, field_separator, language):
     node_list = list()
     for node in node_infor:
         type = resolve_node_type(node[1])
+        name = resolve_node_name(node[2])
         if type == 'FILE':
-            name = node[2].replace("/\tm", "")
-            name = name.replace("\tn", "")
-            name = name.replace("\ts", "")
-            name = name.replace("\tp", "")
             name = name.replace(field_separator, "")
-
         else:
-            name = resolve_node_name(node[2], language)
+            name = resolve_node_name(node[2])
 
         if node[0] in element_to_source_dict.keys():
             source_id = element_to_source_dict[node[0]]
             node_location = node_location_dict[source_id]
             node_file_path = file_dict[node_location[0]]
             node_file_path = node_file_path.replace(field_separator, "")
-            node_list.append(Entity(node[0], name, type, node_file_path, node_location[0], node_location[1], node_location[2], node_location[3]))
+            node_list.append(Entity(node[0], name, type, node_file_path, node_location[1], node_location[2], node_location[3], node_location[4]))
         else:
             node_list.append(Entity(node[0], name, type))
     return node_list
-
-
-def resolve_node_name(name: str, language):
-    META_DELIMITER = "\tm"
-    NAME_DELIMITER = "\tn"
-    PARTS_DELIMITER = "\ts"
-    SIGNATURE_DELIMITER = "\tp"
-
-    name = re.sub("(.*)" + META_DELIMITER, "", name, flags=0)
-    name = name.replace(PARTS_DELIMITER + SIGNATURE_DELIMITER, "")
-
-    name = name.replace(NAME_DELIMITER, ".")
-
-    if (name.find(PARTS_DELIMITER)!=-1) & (name.find(SIGNATURE_DELIMITER)!=-1):
-        name = name[0:name.find(PARTS_DELIMITER)]
-    if language == 'cpp':
-        name = name.split(".")
-        name = "::".join(name)
-    return name
 
 
 def resolve_node_type(type: int):
@@ -163,22 +142,64 @@ def sourcetrail(projectname, language, db_path, root):
     output(dependencyList, dependency_json_path, "dependency", projectname)
 
 
-if __name__ == "__main__":
-    projectname = "keras"
-    language = "python"
-    root = "C:/Users/ding7/Desktop/"
-    
-    field_separator = "D:/gitrepo/" + language + "/" + projectname +"/"
-    db_path = "D:/gitrepo/" + language + "/" + projectname + "/" + projectname + ".srctrldb"
+def resolve_node_name(serializedNameHierarchy: str):
+    """
+    {
+        "name_delimiter": "."
+         "name_elements": [
+         {
+            "prefix": "",
+            "name": "",
+            "postfix": ""
+         },
+         ...
+         ]
+    }
+    """
+    deserializedName = list()
+    name = serializedNameHierarchy.split(META_DELIMITER)
+    name_elements = name[1].split(NAME_DELIMITER)
+    for element in name_elements:
+        name = element.split(PARTS_DELIMITER)[0]
+        # other = element.split(PARTS_DELIMITER)[1]
+        # prefix = other.split(SIGNATURE_DELIMITER)[0]
+        # postfix = other.split(SIGNATURE_DELIMITER)[1]
+        deserializedName.append(name)
+    if language == 'cpp':
+        return "::".join(deserializedName)
+    return ".".join(deserializedName)
 
-    con = sqlite3.connect(db_path)
-    cur = con.cursor()
+META_DELIMITER = "\tm"
+NAME_DELIMITER = "\tn"
+PARTS_DELIMITER = "\ts"
+SIGNATURE_DELIMITER = "\tp"
 
-    entityList = sourcetrail_get_node(cur, field_separator, language)
-    dependencyList = sourcetrail_get_edge(cur)
+# Usage
+parser = argparse.ArgumentParser()
+parser.add_argument('lang', help='Sepcify the target language:cpp, java, python, js')
+parser.add_argument('project', help='Specify the project name')
+parser.add_argument('dbpath', help='Specify the database path')
+parser.add_argument('prepath', help='Specify the path your project in')
+parser.add_argument('output', help='Specify the output path')
+args = parser.parse_args()
+language = args.lang
+try:
+    ['cpp', 'java', 'python', 'js'].index(language)
+except:
+    raise ValueError(
+        f'Invalid lang {language}, only support cpp / java / python')
 
-    entity_json_path = root + "sourcetrail_" + projectname +"_entity.json"
-    dependency_json_path = root + "sourcetrail_" +projectname +"_dependency.json"
+projectname = args.project
+field_separator = args.prepath
+db_path = args.dbpath
+output_path = args.output
+con = sqlite3.connect(db_path)
+cur = con.cursor()
 
-    output(entityList, entity_json_path, "entity", projectname)
-    output(dependencyList, dependency_json_path, "dependency", projectname)
+entityList = sourcetrail_get_node(cur, field_separator, language)
+dependencyList = sourcetrail_get_edge(cur)
+entity_json_path = output_path + "sourcetrail_" + projectname +"_entity.json"
+dependency_json_path = output_path + "sourcetrail_" +projectname +"_dependency.json"
+output(entityList, entity_json_path, "entity", projectname)
+output(dependencyList, dependency_json_path, "dependency", projectname)
+
