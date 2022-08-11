@@ -18,3 +18,19 @@ D:/gitrepo/cpp/bitcoin/bitcoin.srctrldb D:/gitrepo/cpp/bitcoin/
 C:/Users/dzf/Desktop
 ```
 3) Result
+
+### Understand
+
+#### Usage:
+
+1) Build a project and analysis using `Understand`
+2) Run the following step:
+```text
+upython Extract/Format/Understand.py lang project_name database output_path
+```
+example:
+```text
+upython Extract/Format/Sourcetrail.py cpp bitcoin
+D:/gitrepo/cpp/bitcoin/bitcoin.srctrldb C:/Users/dzf/Desktop
+```
+3) Result

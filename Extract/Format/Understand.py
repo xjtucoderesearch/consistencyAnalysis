@@ -1,4 +1,10 @@
 import json
+import argparse
+import re
+import understand
+
+def contain(keyword, raw):
+    return bool(re.search(r'(^| )%s' % keyword, raw))
 
 
 def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, startColumn = -1, endLine = -1, endColumn = -1):
@@ -14,6 +20,18 @@ def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, 
     return entity
 
 
+def Dependency(dependencyType, dependencySrcID, dependencydestID, startLine = -1, startColumn = -1, endLine = -1, endColumn = -1):
+    dependency = dict()
+    dependency['dependencyType'] = dependencyType
+    dependency['dependencySrcID'] = dependencySrcID
+    dependency['dependencyDestID'] = dependencydestID
+    dependency['startLine'] = startLine
+    dependency['startColumn'] = startColumn
+    dependency['endLine'] = endLine
+    dependency['endColumn'] = endColumn
+    return dependency
+
+
 def output(info_list: list, json_path: str, type:str, projectname: str):
     file = dict()
     file["schemaVersion"] = 1.0
@@ -23,31 +41,100 @@ def output(info_list: list, json_path: str, type:str, projectname: str):
     with open(json_path, 'w') as json_file:
         json_file.write(dependency_str)
 
+# Usage
+parser = argparse.ArgumentParser()
+parser.add_argument('lang', help='Sepcify the target language:cpp, java, python, js')
+parser.add_argument('project', help='Specify the project name')
+parser.add_argument('dbpath', help='Specify the database path')
+parser.add_argument('output', help='Specify the output path')
+args = parser.parse_args()
 
-def deal(path: str):
-    with open(path, 'r', encoding='utf-8') as file:
-        data = json.load(file)
-    entity_list = list()
-    for entity in data['entity']:
-        entity_name = entity['entityName']
-        if entity['entityType'] == "File":
-            entity_name = entity_name.replace("\\", "/")
-        entity_list.append(Entity(entity['entityID'], entity_name, entity['entityType'],
-                                  entity['entityFile'], entity['startLine'], entity['startColumn'],
-                                  entity['endLine'], entity['endColumn']))
-    return entity_list
+lang = args.lang
+try:
+    ['cpp', 'java', 'python', 'js'].index(lang)
+except:
+    raise ValueError(
+        f'Invalid lang {lang}, only support cpp / java / python')
+
+project_name = args.project
+database_path = args.dbpath
+output_path = args.output
+
+print('Openning udb file...')
+db = understand.open(database_path)
+
+ent_list = []
+
+# Extract file entities first
+print('Exporting File entities...')
+file_count = 0
+for ent in db.ents('File'):
+    if (ent.language() == 'C++') | (ent.language() == 'C') | (ent.language() == 'Java') | \
+            (ent.language() == 'Python') | (ent.language() == 'Web'):
+        ent_list.append(Entity(ent.id(), ent.relname(), 'File'))
+        file_count += 1
+print(f'Total {file_count} files are successfully exported')
+
+print('Exporting entities other that File...')
+regular_count = 0
+
+# Package, not belonging to any real files, worth process separately
+for ent in db.ents('Package'):
+    if (ent.language() == 'Java') | (ent.language() == 'Python'):
+        # Assign Packages to a virtual file to fulfill db schema
+        ent_list.append(Entity(ent.id(), ent.longname(), ent.kindname()));
+        regular_count += 1
+
+for ent in db.ents('Namespace'):
+    if (ent.language() == 'C++') | (ent.language() == 'C'):
+        ent_list.append(Entity(ent.id(), ent.longname(), ent.kindname()))
+        regular_count += 1
+
+# Filter entities other than file
+unseen_entity_type = set()
+
+select = "~File ~Package ~Unresolved ~Implicit ~Unknown"
+if lang == "cpp":
+    select = "~File ~Package ~Namespace ~Unresolved ~Implicit ~Unknown"
+for ent in db.ents(select):
+    if (ent.language() == 'C++') | (ent.language() == 'C') | \
+            (ent.language() == 'Java') | (ent.language() == 'Python') | (ent.language() == 'Web'):
+        # Although a suffix 's' is added, there should be only
+        # one entry that matches the condition
+        decls = ent.refs('Definein')
+        if decls:
+            # Normal entities should have a ref definein contains location
+            # about where this entity is defined
+            line = decls[0].line()
+            start_column = decls[0].column() + 1
+            end_column = start_column + len(ent.simplename())
+            ent_list.append(
+                Entity(ent.id(), ent.longname(), ent.kindname(), decls[0].file().relname(), line, start_column, line,
+                       end_column))
+            regular_count += 1
+        else:
+            unseen_entity_type.add(ent.kindname())
+            ent_list.append(Entity(ent.id(), ent.longname(), ent.kindname()))
+
+rel_list = []
+
+print('Exporting relations...')
+rel_count = 0
+for ent in db.ents():
+    if (ent.language() == 'C++') | (ent.language() == 'C') | \
+            (ent.language() == 'Java') | (ent.language() == 'Python') | (ent.language() == 'Web'):
+        for ref in ent.refs('~End', '~Unknown ~Unresolved ~Implicit'):
+            if ref.isforward():
+                rel_list.append(Dependency(ref.kind().longname(), ref.scope().id(), ref.ent().id(), ref.line(), ref.column(), ref.line(), ref.column()))
+                rel_count += 1
+
+print("unseen entity type: ")
+print(unseen_entity_type)
 
 
-def understand(input_path, output_path, project_name):
-    entity_list = deal(input_path)
-    output(entity_list, output_path + "understand_" + project_name + "_dependency.json", "dependency", project_name)
+print(f'Total {regular_count} entities are successfully exported')
+print(f'Total {rel_count} relations are successfully exported')
 
-if __name__ == "__main__":
-    project_name = "keras"
-    input_path = "C:/Users/ding7/Desktop/consistencyAnalysis/input_dir/" + project_name + "/understand_" + project_name + "_entity.json"
-    input_path = "D:/scitool/SciTools/scripts/understand_keras_dependency.json"
-    output_path = "C:/Users/ding7/Desktop/consistencyAnalysis/input_dir/" + project_name + "/"
-
-    entity_list = deal(input_path)
-    output(entity_list, output_path + "understand_" + project_name + "_dependency.json",  "dependency", project_name)
-
+print('Saving results to the file...')
+output(ent_list, output_path + "Understand_" + project_name + "_entity.json", 'entity', project_name)
+output(rel_list, output_path + "Understand_" + project_name + "_dependency.json", 'dependency', project_name)
