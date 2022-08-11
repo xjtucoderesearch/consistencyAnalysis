@@ -34,3 +34,16 @@ upython Extract/Format/Sourcetrail.py cpp bitcoin
 D:/gitrepo/cpp/bitcoin/bitcoin.srctrldb C:/Users/dzf/Desktop
 ```
 3) Result
+
+### Depends
+
+#### Usage:
+
+1) Run the following step:
+```text
+java -jar Extract/tools/depends.jar lang project_path project_name -g var
+```
+example:
+```text
+java -jar Extract/tools/depends.jar python ./boto3 boto3 -g var
+```
