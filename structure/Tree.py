@@ -1,4 +1,3 @@
-
 class Node:
     def __init__(self, char, word, terminal=False, children=None ):
         self.char = char
@@ -6,6 +5,7 @@ class Node:
         self.children = children or set()
         self.terminal = terminal
         self.nodeset = set()
+
     def setTerminal(self):
         self.terminal = True
 
@@ -20,11 +20,14 @@ class nameTree:
 
     def insert(self, item, id):
         bn = self.mid
-        for j in item:
+        for index, j in enumerate(item):
             # traverse the children, if the item in the children, needn't add the item in the children
             for child in bn.children:
                 if j == child.char:
-                    child.nodeset.add(id)
+                    if index == item.__len__():
+                        child.nodeset.add(id)
+                        child.setTerminal()
+                        return
                     break
             else:
                 child = self.node(j, '')
@@ -75,13 +78,42 @@ class Compare:
             return
         if not bn_right:
             return
-
         if bn_left.char == bn_right.char:
             for child_left in bn_left.children:
                 for child_right in bn_right.children:
                     if child_left.char == child_right.char:
                         if child_left.terminal & child_right.terminal:
                             self.Equal_set.append(tuple((child_left.nodeset, child_right.nodeset)))
-                        else:
-                            self.compare(child_left, child_right)
+                        self.compare(child_left, child_right)
         return self.Equal_set
+
+
+if __name__ == "__main__":
+    l_forest = nameTree()
+    print(f"start load data:")
+    l_name = ["com.xxmassdeveloper.mpchartexample",
+              "com.xxmassdeveloper.InvertedLineChartActivity",
+              "com.xxmassdeveloper.mpchartexample.InvertedLineChartActivity",
+              "com.xxmassdeveloper.mpchartexample.InvertedLineChartActivity.getdata",
+              "com.xxmassdeveloper.mpchartexample.InvertedLineChartActivity.getdata.i",
+              "com.xxmassdeveloper"]
+    l_id = [1, 2, 3, 4, 5, 6]
+    for entity, id in zip(l_name, l_id):
+        l_forest.insert(entity.split("."), id)
+    r_forest = nameTree()
+    print(f"start load data:")
+    r_name = ["com.xxmassdeveloper.mpchartexample",
+              "com.xxmassdeveloper.mpchartexample.InvertedLineChartActivity",
+              "com.xxmassdeveloper.mpchartexample.InvertedLineChartActivity.getdata",
+              "com.xxmassdeveloper.mpchartexample.InvertedLineChartActivity.test",
+              "com.xxmassdeveloper.mpchartexample.InvertedLineChartActivity.line",
+              "com.xxmassdeveloper.mpchartexample.getdata"]
+    r_id = [1, 2, 3, 4, 5, 6]
+    for entity, id in zip(r_name, r_id):
+        r_forest.insert(entity.split("."), id)
+
+    compare = Compare()
+    print(l_forest.tree(l_forest.mid))
+    print(r_forest.tree(r_forest.mid))
+    equal_set = compare.compare(l_forest.mid, r_forest.mid)
+    print(equal_set)
