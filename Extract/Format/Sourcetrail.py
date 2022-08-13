@@ -4,30 +4,47 @@ import argparse
 import math
 
 
-
-def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, startColumn = -1, endLine = -1, endColumn = -1):
+def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, startColumn = -1, endColumn = -1):
     entity = dict()
-    entity['entityID'] = entityID
-    entity['entityName'] = entityName
-    entity['entityType'] = entityType
-    entity['entityFile'] = entityFile
-    entity['startLine'] = startLine
-    entity['startColumn'] = startColumn
-    entity['endLine'] = endLine
-    entity['endColumn'] = endColumn
+    entity['id'] = entityID
+    entity['name'] = entityName
+    entity['type'] = entityType
+    entity['belongs_to'] = entityFile
+    entity['line'] = startLine
+    entity['start_column'] = startColumn
+    entity['end_column'] = endColumn
     return entity
 
 
-def Dependency(dependencyType, dependencySrcID, dependencydestID, startLine = -1, startColumn = -1, endLine = -1, endColumn = -1):
+def Dependency(dependencyType, dependencySrcID, dependencydestID, startLine = -1, startColumn = -1):
     dependency = dict()
-    dependency['dependencyType'] = dependencyType
-    dependency['dependencySrcID'] = dependencySrcID
-    dependency['dependencyDestID'] = dependencydestID
-    dependency['startLine'] = startLine
-    dependency['startColumn'] = startColumn
-    dependency['endLine'] = endLine
-    dependency['endColumn'] = endColumn
+    dependency['type'] = dependencyType
+    dependency['from'] = dependencySrcID
+    dependency['to'] = dependencydestID
+    dependency['line'] = startLine
+    dependency['column'] = startColumn
     return dependency
+
+
+def outputAll(entity_list: list, relation_list:list, json_path: str,  projectname: str):
+    file = dict()
+    file["script_ver"] = 1.0
+    file["entities"] = entity_list
+    file["relations"] = relation_list
+    file['db_name'] = projectname
+    dependency_str = json.dumps(file, indent=4)
+    with open(json_path, 'w') as json_file:
+        json_file.write(dependency_str)
+
+
+def output(info_list: list, json_path: str, type:str, projectname: str):
+    file = dict()
+    file["script_ver"] = 1.0
+    file[type] = info_list
+    file['db_name'] = projectname
+    dependency_str = json.dumps(file, indent=4)
+    with open(json_path, 'w') as json_file:
+        json_file.write(dependency_str)
 
 
 def get_all_table_name(cur):
@@ -89,7 +106,7 @@ def sourcetrail_get_node(cur, field_separator, language):
             node_location = node_location_dict[source_id]
             node_file_path = file_dict[node_location[0]]
             node_file_path = node_file_path.replace(field_separator, "")
-            node_list.append(Entity(node[0], name, type, node_file_path, node_location[1], node_location[2], node_location[3], node_location[4]))
+            node_list.append(Entity(node[0], name, type, node_file_path, node_location[1], node_location[2], node_location[4]))
         else:
             node_list.append(Entity(node[0], name, type))
     return node_list
@@ -115,16 +132,6 @@ def sourcetrail_get_edge(cur):
     for edge in edge_infor:
         edge_list.append(Dependency(EdgeKind[int(math.log(edge[1], 2))], edge[2], edge[3]))
     return edge_list
-
-
-def output(info_list: list, json_path: str, type:str, projectname: str):
-    file = dict()
-    file["schemaVersion"] = 1.0
-    file[type] = info_list
-    file['projectName'] = projectname
-    dependency_str = json.dumps(file, indent=4)
-    with open(json_path, 'w') as json_file:
-        json_file.write(dependency_str)
 
 
 def sourcetrail(projectname, language, db_path, root):
@@ -181,7 +188,11 @@ parser.add_argument('project', help='Specify the project name')
 parser.add_argument('dbpath', help='Specify the database path')
 parser.add_argument('prepath', help='Specify the path your project in')
 parser.add_argument('output', help='Specify the output path')
+parser.add_argument('-p', help='only save a file containing entities and relations',
+    action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
+
+print_mode = args.p
 language = args.lang
 try:
     ['cpp', 'java', 'python', 'js'].index(language)
@@ -198,8 +209,12 @@ cur = con.cursor()
 
 entityList = sourcetrail_get_node(cur, field_separator, language)
 dependencyList = sourcetrail_get_edge(cur)
-entity_json_path = output_path + "sourcetrail_" + projectname +"_entity.json"
-dependency_json_path = output_path + "sourcetrail_" +projectname +"_dependency.json"
-output(entityList, entity_json_path, "entity", projectname)
-output(dependencyList, dependency_json_path, "dependency", projectname)
+if print_mode:
+    json_path = output_path + "sourcetrail_" + projectname + ".json"
+    outputAll(entityList, dependencyList, json_path, projectname)
+else:
+    entity_json_path = output_path + "sourcetrail_" + projectname + "_entity.json"
+    dependency_json_path = output_path + "sourcetrail_" + projectname + "_dependency.json"
+    output(entityList, entity_json_path, "entities", projectname)
+    output(dependencyList, dependency_json_path, "relations", projectname)
 

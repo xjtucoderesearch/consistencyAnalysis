@@ -7,36 +7,44 @@ def contain(keyword, raw):
     return bool(re.search(r'(^| )%s' % keyword, raw))
 
 
-def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, startColumn = -1, endLine = -1, endColumn = -1):
+def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, startColumn = -1, endColumn = -1):
     entity = dict()
-    entity['entityID'] = entityID
-    entity['entityName'] = entityName
-    entity['entityType'] = entityType
-    entity['entityFile'] = entityFile
-    entity['startLine'] = startLine
-    entity['startColumn'] = startColumn
-    entity['endLine'] = endLine
-    entity['endColumn'] = endColumn
+    entity['id'] = entityID
+    entity['name'] = entityName
+    entity['type'] = entityType
+    entity['belongs_to'] = entityFile
+    entity['line'] = startLine
+    entity['start_column'] = startColumn
+    entity['end_column'] = endColumn
     return entity
 
 
-def Dependency(dependencyType, dependencySrcID, dependencydestID, startLine = -1, startColumn = -1, endLine = -1, endColumn = -1):
+def Dependency(dependencyType, dependencySrcID, dependencydestID, startLine = -1, startColumn = -1):
     dependency = dict()
-    dependency['dependencyType'] = dependencyType
-    dependency['dependencySrcID'] = dependencySrcID
-    dependency['dependencyDestID'] = dependencydestID
-    dependency['startLine'] = startLine
-    dependency['startColumn'] = startColumn
-    dependency['endLine'] = endLine
-    dependency['endColumn'] = endColumn
+    dependency['type'] = dependencyType
+    dependency['from'] = dependencySrcID
+    dependency['to'] = dependencydestID
+    dependency['line'] = startLine
+    dependency['column'] = startColumn
     return dependency
 
 
-def output(info_list: list, json_path: str, type:str, projectname: str):
+def outputAll(entity_list: list, relation_list: list, json_path: str, projectname: str):
     file = dict()
-    file["schemaVersion"] = 1.0
+    file["script_ver"] = 1.0
+    file["entities"] = entity_list
+    file["relations"] = relation_list
+    file['db_name'] = projectname
+    dependency_str = json.dumps(file, indent=4)
+    with open(json_path, 'w') as json_file:
+        json_file.write(dependency_str)
+
+
+def output(info_list: list, json_path: str, type: str, projectname: str):
+    file = dict()
+    file["script_ver"] = 1.0
     file[type] = info_list
-    file['projectName'] = projectname
+    file['db_name'] = projectname
     dependency_str = json.dumps(file, indent=4)
     with open(json_path, 'w') as json_file:
         json_file.write(dependency_str)
@@ -47,8 +55,11 @@ parser.add_argument('lang', help='Sepcify the target language:cpp, java, python,
 parser.add_argument('project', help='Specify the project name')
 parser.add_argument('dbpath', help='Specify the database path')
 parser.add_argument('output', help='Specify the output path')
+parser.add_argument('-p', help='only save a file containing entities and relations',
+    action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
 
+print_mode = args.p
 lang = args.lang
 try:
     ['cpp', 'java', 'python', 'js'].index(lang)
@@ -109,8 +120,7 @@ for ent in db.ents(select):
             start_column = decls[0].column() + 1
             end_column = start_column + len(ent.simplename())
             ent_list.append(
-                Entity(ent.id(), ent.longname(), ent.kindname(), decls[0].file().relname(), line, start_column, line,
-                       end_column))
+                Entity(ent.id(), ent.longname(), ent.kindname(), decls[0].file().relname(), line, start_column, end_column))
             regular_count += 1
         else:
             unseen_entity_type.add(ent.kindname())
@@ -125,7 +135,7 @@ for ent in db.ents():
             (ent.language() == 'Java') | (ent.language() == 'Python') | (ent.language() == 'Web'):
         for ref in ent.refs('~End', '~Unknown ~Unresolved ~Implicit'):
             if ref.isforward():
-                rel_list.append(Dependency(ref.kind().longname(), ref.scope().id(), ref.ent().id(), ref.line(), ref.column(), ref.line(), ref.column()))
+                rel_list.append(Dependency(ref.kind().longname(), ref.scope().id(), ref.ent().id(), ref.line(), ref.column()))
                 rel_count += 1
 
 print("unseen entity type: ")

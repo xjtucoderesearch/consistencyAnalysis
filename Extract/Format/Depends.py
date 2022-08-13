@@ -1,34 +1,44 @@
 import json
 import ast
 
-def Dependency(dependencyType, dependencySrcID, dependencydestID, startLine = -1, startColumn = -1, endLine = -1, endColumn = -1):
-    dependency = dict()
-    dependency['dependencyType'] = dependencyType
-    dependency['dependencySrcID'] = dependencySrcID
-    dependency['dependencyDestID'] = dependencydestID
-    dependency['startLine'] = startLine
-    dependency['startColumn'] = startColumn
-    dependency['endLine'] = endLine
-    dependency['endColumn'] = endColumn
-    return dependency
-
-def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, startColumn = -1, endLine = -1, endColumn = -1):
+def Entity(entityID, entityName, entityType, entityFile = None, startLine = -1, startColumn = -1, endColumn = -1):
     entity = dict()
-    entity['entityID'] = entityID
-    entity['entityName'] = entityName
-    entity['entityType'] = entityType
-    entity['entityFile'] = entityFile
-    entity['startLine'] = startLine
-    entity['startColumn'] = startColumn
-    entity['endLine'] = endLine
-    entity['endColumn'] = endColumn
+    entity['id'] = entityID
+    entity['name'] = entityName
+    entity['type'] = entityType
+    entity['belongs_to'] = entityFile
+    entity['line'] = startLine
+    entity['start_column'] = startColumn
+    entity['end_column'] = endColumn
     return entity
 
-def output(info_list: list, json_path: str, type:str, projectname: str):
+
+def Dependency(dependencyType, dependencySrcID, dependencydestID, startLine = -1, startColumn = -1):
+    dependency = dict()
+    dependency['type'] = dependencyType
+    dependency['from'] = dependencySrcID
+    dependency['to'] = dependencydestID
+    dependency['line'] = startLine
+    dependency['column'] = startColumn
+    return dependency
+
+
+def outputAll(entity_list: list, relation_list: list, json_path: str, projectname: str):
     file = dict()
-    file["schemaVersion"] = 1.0
+    file["script_ver"] = 1.0
+    file["entities"] = entity_list
+    file["relations"] = relation_list
+    file['db_name'] = projectname
+    dependency_str = json.dumps(file, indent=4)
+    with open(json_path, 'w') as json_file:
+        json_file.write(dependency_str)
+
+
+def output(info_list: list, json_path: str, type: str, projectname: str):
+    file = dict()
+    file["script_ver"] = 1.0
     file[type] = info_list
-    file['projectName'] = projectname
+    file['db_name'] = projectname
     dependency_str = json.dumps(file, indent=4)
     with open(json_path, 'w') as json_file:
         json_file.write(dependency_str)
