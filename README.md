@@ -13,9 +13,7 @@ python Extract/Format/Sourcetrail.py lang project_name database path_prefix outp
 ```
 example:
 ```text
-python Extract/Format/Sourcetrail.py cpp bitcoin
-D:/gitrepo/cpp/bitcoin/bitcoin.srctrldb D:/gitrepo/cpp/bitcoin/
-C:/Users/dzf/Desktop
+python Extract/Format/Sourcetrail.py cpp bitcoin D:/gitrepo/cpp/bitcoin/bitcoin.srctrldb D:/gitrepo/cpp/bitcoin/ C:/Users/dzf/Desktop
 ```
 3) Result
 
@@ -30,8 +28,7 @@ upython Extract/Format/Understand.py lang project_name database output_path
 ```
 example:
 ```text
-upython Extract/Format/Sourcetrail.py cpp bitcoin
-D:/gitrepo/cpp/bitcoin/bitcoin.srctrldb C:/Users/dzf/Desktop
+upython Extract/Format/Sourcetrail.py cpp bitcoin D:/gitrepo/cpp/bitcoin/bitcoin.srctrldb C:/Users/dzf/Desktop
 ```
 3) Result
 
